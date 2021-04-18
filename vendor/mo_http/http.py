@@ -129,7 +129,7 @@ def request(method, url, headers=None, data=None, json=None, zip=None, retry=Non
             set_default(kwargs, DEFAULTS)
 
             # HEADERS
-            headers = unwrap(set_default(headers, default_headers, {'Accept-Encoding': 'compress, gzip, identity'}, session.headers))
+            headers = unwrap(set_default(headers, default_headers))
             _to_ascii_dict(headers)
 
             # RETRY
@@ -257,7 +257,7 @@ def post_json(url, **kwargs):
     else:
         Log.error(u"Expecting `json` parameter")
 
-    kwargs.setdefault("header", {})['Content-Type']=mimetype.JSON
+    kwargs.setdefault("headers", {})['Content-Type'] = mimetype.JSON
     response = post(url, **kwargs)
     content = response.content.decode('utf8')
     details = json2value(content)
