@@ -129,7 +129,7 @@ def request(method, url, headers=None, data=None, json=None, zip=None, retry=Non
             set_default(kwargs, DEFAULTS)
 
             # HEADERS
-            headers = unwrap(set_default(headers, default_headers))
+            headers = unwrap(set_default(headers, default_headers, {'Accept-Encoding': 'compress, gzip'}))
             _to_ascii_dict(headers)
 
             # RETRY
