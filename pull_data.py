@@ -30,22 +30,22 @@ WEEKLY_DEATHS = 13_10_0784
 DEATHS_BY_MONTH = 13_10_0708
 
 # ALL CUBES
-# cubes = http.get_json("https://www150.statcan.gc.ca/t1/wds/rest/getAllCubesListLite")
-# Log.note("There are {{num}} cubes", cubes=len(cubes))
+cubes = http.get_json("https://www150.statcan.gc.ca/t1/wds/rest/getAllCubesListLite")
+Log.note("There are {{num}} cubes", cubes=len(cubes))
 
 # # PULL METADATA
-# result = http.post_json(
-#     "https://www150.statcan.gc.ca/t1/wds/rest/getCubeMetadata",
-#     json=[{"productId": WEEKLY_DEATHS}],
-# )
-# Log.note("{{data}}", data=result)
+result = http.post_json(
+    "https://www150.statcan.gc.ca/t1/wds/rest/getCubeMetadata",
+    json=[{"productId": WEEKLY_DEATHS}],
+)
+Log.note("{{data}}", data=result)
 
-# series = http.post_json(
-#     "https://www150.statcan.gc.ca/t1/wds/rest/getSeriesInfoFromCubePidCoord",
-#     json=[{"productId": WEEKLY_DEATHS, "coordinate": "1.1.0.0.0.0.0.0.0.0"}]
-# )
-# Log.note("{{series}}", series=series)
-#
+# PULL SERIES METADATA
+series = http.post_json(
+    "https://www150.statcan.gc.ca/t1/wds/rest/getSeriesInfoFromCubePidCoord",
+    json=[{"productId": WEEKLY_DEATHS, "coordinate": "1.1.0.0.0.0.0.0.0.0"}]
+)
+Log.note("{{series}}", series=series)
 
 # PULL DATA
 data = http.post_json(

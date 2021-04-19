@@ -1,5 +1,5 @@
 mo-dots
 mo-json
 mo-logs
-mo-files
+mo-files>=4.25.21109
 mo-http
