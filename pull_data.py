@@ -6,19 +6,21 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
-from typing import List
 
-from mo_dots import to_data, from_data, listwrap, is_many
-from mo_json import value2json, json2value
-from mo_logs import Log, strings
-
-from mo_files import mimetype
-from mo_http import http
-import plotly.express as px
-import numpy
 import pandas as pd
 import plotly.graph_objects as go
+from mo_dots import to_data, from_data, listwrap, is_many
+from mo_files import mimetype
+from mo_http import http
+from mo_logs import Log
 from mo_times import Date
+
+
+# PROVINCE = 7
+# PROVINCE_NAME = "Ontario"
+
+PROVINCE = 11
+PROVINCE_NAME = "British Columbia"
 
 Log.start(trace=True)
 
@@ -139,53 +141,12 @@ def data(cube_id, coord, num):
 
 
 # PULL METADATA
-# result = metadata(MONTHLY_DEATHS)
-# Log.note("{{data}}", data=result)
-
-# CHART DEATHS PER YEAR
-# raw_data = data(MONTHLY_DEATHS, "7.1.1", 20)  # Ontario, yearly, total
-# deaths = pd.DataFrame(columns=[k for k, _ in raw_data.object.vectorDataPoint[0].items()])
-# for point in from_data(raw_data.object.vectorDataPoint):
-#     deaths = deaths.append(point, ignore_index=True)
-#
-# fig = px.bar(deaths, x="refPer", y="value")
-# fig.update_layout(title="Death Count, Ontario")
-# fig.show()
-#
+result = metadata(MONTHLY_DEATHS)
+Log.note("{{data}}", data=result)
 
 
 # result = metadata(POPULATION_ESTIMATES)
 # Log.note("{{data}}", data=result)
-
-# 1   # all ages
-# 7   # 0-4
-# 13  # 5-9
-# 19  # 10-14
-# 25  # 15-19
-# 31  # 20-24
-# 37  # 25-29
-# 43  # 30-34
-# 49  # 35-39
-# 55  # 40-44
-# 61  # 45-49  **
-# 67  # 50-54
-# 73  # 55-59
-# 79  # 60-64
-# 85  # 65-69  **
-# 86  # 70-74  **
-# 87  # 75-79  **
-# 88  # 80-84  **
-#
-# 89  # 85-89
-# 90  # 90+
-# 91  # 0-14   **
-# 95  # 15-49  **
-# 96  # 15-64
-#
-# 102 # 25-44  **
-# 103 # 45-64  ***
-# 104 # 64 +
-
 
 (
     a00_14,
@@ -202,17 +163,17 @@ def data(cube_id, coord, num):
 ) = data(
     POPULATION_ESTIMATES,
     [
-        "7.1.91",  # 0-14
-        "7.1.25",  # 15-19
-        "7.1.31",  # 20-24
-        "7.1.102",  # 25-44
-        "7.1.103",  # 45-64
-        "7.1.85",  # 65-69  **
-        "7.1.86",  # 70-74  **
-        "7.1.87",  # 75-79  **
-        "7.1.88",  # 80-84  **
-        "7.1.89",  # 85-89
-        "7.1.90",  # 90+
+        ""+str(PROVINCE)+".1.91",  # 0-14
+        ""+str(PROVINCE)+".1.25",  # 15-19
+        ""+str(PROVINCE)+".1.31",  # 20-24
+        ""+str(PROVINCE)+".1.102",  # 25-44
+        ""+str(PROVINCE)+".1.103",  # 45-64
+        ""+str(PROVINCE)+".1.85",  # 65-69  **
+        ""+str(PROVINCE)+".1.86",  # 70-74  **
+        ""+str(PROVINCE)+".1.87",  # 75-79  **
+        ""+str(PROVINCE)+".1.88",  # 80-84  **
+        ""+str(PROVINCE)+".1.89",  # 85-89
+        ""+str(PROVINCE)+".1.90",  # 90+
     ],
     12,
 )
@@ -271,7 +232,7 @@ populations["85"] = populations["value_85"] + populations["value_90"]
 #     go.Bar(name="65-84", x=populations[DATE_COLUMN], y=populations["65"]),
 #     go.Bar(name="85+", x=populations[DATE_COLUMN], y=populations["85"]),
 # ])
-# fig.update_layout(title="Population, Ontario", barmode="stack")
+# fig.update_layout(title="Population, "+PROVINCE_NAME, barmode="stack")
 # fig.show()
 
 
@@ -302,7 +263,7 @@ def get_population(y, date):
 # combined = deaths.join(population.set_index('refPer'), on='refPer', how="inner", lsuffix="_deaths", rsuffix="_population")
 # combined['Death Rate'] = (combined['value_deaths'] / combined['value_population'])
 # fig = px.bar(combined, x="refPer", y="Death Rate")
-# fig.update_layout(title="Death Rate, Ontario, Normalized to population 65+")
+# fig.update_layout(title="Death Rate, "+PROVINCE_NAME+", Normalized to population 65+")
 # fig.show()
 
 
@@ -311,7 +272,7 @@ def get_population(y, date):
 # Log.note("{{data}}", data=result)
 
 weekly_deaths0, weekly_deaths45, weekly_deaths65, weekly_deaths85 = data(
-    WEEKLY_DEATHS_NEW, ["7.2.1.1", "7.3.1.1", "7.4.1.1", "7.5.1.1"], 400  # Jan 2010
+    WEEKLY_DEATHS_NEW, [""+str(PROVINCE)+".2.1.1", ""+str(PROVINCE)+".3.1.1", ""+str(PROVINCE)+".4.1.1", ""+str(PROVINCE)+".5.1.1"], 1000  # Jan 2010
 )  # Ontario, 65+, both sex, count
 
 deaths = weekly_deaths0
@@ -354,7 +315,7 @@ deaths["rate_85"] = deaths['value_85']/deaths['pop_85']*1_000_000
 #     go.Bar(name="65-84", x=deaths["refPer"], y=deaths["value_65"]),
 #     go.Bar(name="85+", x=deaths["refPer"], y=deaths["value_85"]),
 # ])
-# fig.update_layout(title="Weekly Deaths, Ontario", barmode="stack")
+# fig.update_layout(title="Weekly Deaths, "+PROVINCE_NAME, barmode="stack")
 # fig.show()
 
 fig = go.Figure(data=[
@@ -363,7 +324,7 @@ fig = go.Figure(data=[
     go.Bar(name="65-84", x=deaths["refPer"], y=deaths["rate_65"]),
     go.Bar(name="85+", x=deaths["refPer"], y=deaths["rate_85"]),
 ])
-fig.update_layout(title="Weekly Death rate, Ontario", barmode="stack")
+fig.update_layout(title="Weekly Deaths per Million, "+PROVINCE_NAME, barmode="stack")
 fig.show()
 
 # fig = go.Figure(data=[
@@ -372,6 +333,6 @@ fig.show()
 #     go.Bar(name="65-84", x=deaths["refPer"], y=deaths["pop_65"]),
 #     go.Bar(name="85+", x=deaths["refPer"], y=deaths["pop_85"]),
 # ])
-# fig.update_layout(title="Weekly population, Ontario", barmode="stack")
+# fig.update_layout(title="Weekly population, "+PROVINCE_NAME, barmode="stack")
 # fig.show()
 #
