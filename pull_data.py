@@ -16,11 +16,11 @@ from mo_logs import Log
 from mo_times import Date
 
 
-# PROVINCE = 7
-# PROVINCE_NAME = "Ontario"
+PROVINCE = 7
+PROVINCE_NAME = "Ontario"
 
-PROVINCE = 11
-PROVINCE_NAME = "British Columbia"
+# PROVINCE = 11
+# PROVINCE_NAME = "British Columbia"
 
 Log.start(trace=True)
 
@@ -111,10 +111,12 @@ def data(cube_id, coord, num):
         return output[0]
 
 
-# # ALL CUBES
+# ALL CUBES
 # cubes = http.get_json("https://www150.statcan.gc.ca/t1/wds/rest/getAllCubesListLite")
 # Log.note("There are {{num}} cubes", cubes=len(cubes))
-# Log.note("death cubes\n{{names}}", names=[(c.productId, c.cubeTitleEn) for c in cubes if str(c.productId).startswith('1310')])
+# for c in cubes:
+#     if "bed" in c.cubeTitleEn.lower() or "hospital" in c.cubeTitleEn.lower():
+#         Log.note("{{id}} {{name}}", id=c.productId, name=c.cubeTitleEn)
 
 #
 # # PULL METADATA
@@ -141,8 +143,8 @@ def data(cube_id, coord, num):
 
 
 # PULL METADATA
-result = metadata(MONTHLY_DEATHS)
-Log.note("{{data}}", data=result)
+# result = metadata(MONTHLY_DEATHS)
+# Log.note("{{data}}", data=result)
 
 
 # result = metadata(POPULATION_ESTIMATES)
@@ -235,6 +237,7 @@ populations["85"] = populations["value_85"] + populations["value_90"]
 # fig.update_layout(title="Population, "+PROVINCE_NAME, barmode="stack")
 # fig.show()
 
+recent_year = populations.shape[0] - 1  # INDEX OF LAST POPULATION COUNT
 
 def get_population(y, date):
     """
@@ -250,8 +253,8 @@ def get_population(y, date):
             ratio = (date-prev)/(next-prev)
             return (y2-y1)*ratio+y1
     # STRAIGHT LINE PROJECTION
-    next = Date(populations[DATE_COLUMN][populations.shape[0]-1])
-    prev = Date(populations[DATE_COLUMN][populations.shape[0]-2])
+    next = Date(populations[DATE_COLUMN][recent_year])
+    prev = Date(populations[DATE_COLUMN][recent_year-1])
     y1, y2 = populations[y][-2:]
     ratio = (date-prev)/(next-prev)
     return (y2-y1)*ratio+y1
@@ -303,10 +306,11 @@ deaths["pop_45"] = [get_population("45", Date(date)) for date in deaths["refPer"
 deaths["pop_65"] = [get_population("65", Date(date)) for date in deaths["refPer"]]
 deaths["pop_85"] = [get_population("85", Date(date)) for date in deaths["refPer"]]
 
-deaths["rate_00"] = deaths['value']/deaths['pop_00']*1_000_000
-deaths["rate_45"] = deaths['value_45']/deaths['pop_45']*1_000_000
-deaths["rate_65"] = deaths['value_65']/deaths['pop_65']*1_000_000
-deaths["rate_85"] = deaths['value_85']/deaths['pop_85']*1_000_000
+# NORMALIZE TO 2020 POPULATION RATIOS
+deaths["rate_00"] = deaths['value'] / deaths['pop_00'] * deaths['pop_00'][recent_year]
+deaths["rate_45"] = deaths['value_45'] / deaths['pop_45'] * deaths['pop_45'][recent_year]
+deaths["rate_65"] = deaths['value_65'] / deaths['pop_65'] * deaths['pop_65'][recent_year]
+deaths["rate_85"] = deaths['value_85'] / deaths['pop_85'] * deaths['pop_85'][recent_year]
 
 
 # fig = go.Figure(data=[
@@ -317,14 +321,15 @@ deaths["rate_85"] = deaths['value_85']/deaths['pop_85']*1_000_000
 # ])
 # fig.update_layout(title="Weekly Deaths, "+PROVINCE_NAME, barmode="stack")
 # fig.show()
+style = {"line": {"width": 0, "color": "rgba(0, 0, 0, 0)"}}
 
 fig = go.Figure(data=[
-    go.Bar(name="0-44", x=deaths["refPer"], y=deaths["rate_00"]),
-    go.Bar(name="45-64", x=deaths["refPer"], y=deaths["rate_45"]),
-    go.Bar(name="65-84", x=deaths["refPer"], y=deaths["rate_65"]),
-    go.Bar(name="85+", x=deaths["refPer"], y=deaths["rate_85"]),
+    go.Bar(name="0-44", x=deaths["refPer"], y=deaths["rate_00"], marker=style),
+    go.Bar(name="45-64", x=deaths["refPer"], y=deaths["rate_45"], marker=style),
+    go.Bar(name="65-84", x=deaths["refPer"], y=deaths["rate_65"], marker=style),
+    go.Bar(name="85+", x=deaths["refPer"], y=deaths["rate_85"], marker=style),
 ])
-fig.update_layout(title="Weekly Deaths per Million, "+PROVINCE_NAME, barmode="stack")
+fig.update_layout(title="Weekly Deaths, normalized to current population, " + PROVINCE_NAME, barmode="stack", bargap=0, bargroupgap=0)
 fig.show()
 
 # fig = go.Figure(data=[
