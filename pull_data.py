@@ -266,14 +266,14 @@ populations["65"] = (
 )
 populations["85"] = populations["value_85"] + populations["value_90"]
 
-# fig = go.Figure(data=[
-#     go.Bar(name="0-44", x=populations[DATE_COLUMN], y=populations["00"]),
-#     go.Bar(name="45-64", x=populations[DATE_COLUMN], y=populations["45"]),
-#     go.Bar(name="65-84", x=populations[DATE_COLUMN], y=populations["65"]),
-#     go.Bar(name="85+", x=populations[DATE_COLUMN], y=populations["85"]),
-# ])
-# fig.update_layout(title="Population, "+PROVINCE_NAME, barmode="stack")
-# fig.show()
+fig = go.Figure(data=[
+    go.Bar(name="0-44", x=populations[DATE_COLUMN], y=populations["00"]),
+    go.Bar(name="45-64", x=populations[DATE_COLUMN], y=populations["45"]),
+    go.Bar(name="65-84", x=populations[DATE_COLUMN], y=populations["65"]),
+    go.Bar(name="85+", x=populations[DATE_COLUMN], y=populations["85"]),
+])
+fig.update_layout(title="Population, " + PROVINCE_NAME, barmode="stack")
+fig.show()
 
 recent_year = populations.shape[0] - 1  # INDEX OF LAST POPULATION COUNT
 _population_dates = [Date(d) for i, d in enumerate(populations[DATE_COLUMN])]
@@ -346,14 +346,44 @@ deaths = deaths.join(
     rsuffix="_85",
 )
 
+
+style = {"line": {"width": 0, "color": "rgba(0, 0, 0, 0)"}}
+
+
+fig = go.Figure(data=[
+    go.Bar(name="0-44", x=deaths["refPer"], y=deaths["value"], marker=style),
+    go.Bar(name="45-64", x=deaths["refPer"], y=deaths["value_45"], marker=style),
+    go.Bar(name="65-84", x=deaths["refPer"], y=deaths["value_65"], marker=style),
+    go.Bar(name="85+", x=deaths["refPer"], y=deaths["value_85"], marker=style),
+])
+fig.update_layout(
+    title="Weekly Deaths, " + PROVINCE_NAME, barmode="stack", bargap=0, bargroupgap=0
+)
+fig.show()
+
+
 deaths["pop_00"] = [get_population("00", Date(date)) for date in deaths["refPer"]]
 deaths["pop_45"] = [get_population("45", Date(date)) for date in deaths["refPer"]]
 deaths["pop_65"] = [get_population("65", Date(date)) for date in deaths["refPer"]]
 deaths["pop_85"] = [get_population("85", Date(date)) for date in deaths["refPer"]]
 
-_death_dates = [
-    (Date(d), Date(d) + Date("week")) for i, d in enumerate(deaths["refPer"])
-]
+
+fig = go.Figure(data=[
+    go.Bar(name="0-44", x=deaths["refPer"], y=deaths["pop_00"], marker=style),
+    go.Bar(name="45-64", x=deaths["refPer"], y=deaths["pop_45"], marker=style),
+    go.Bar(name="65-84", x=deaths["refPer"], y=deaths["pop_65"], marker=style),
+    go.Bar(name="85+", x=deaths["refPer"], y=deaths["pop_85"], marker=style),
+])
+fig.update_layout(
+    title="Weekly population, " + PROVINCE_NAME,
+    barmode="stack",
+    bargap=0,
+    bargroupgap=0,
+)
+fig.show()
+
+
+_death_dates = [(Date(d), Date(d) + Date("week")) for d in deaths["refPer"]]
 
 
 def average_weekly(y, year):
@@ -394,15 +424,7 @@ max_y = nice_ceiling(max(
     deaths["norm_00"] + deaths["norm_45"] + deaths["norm_65"] + deaths["norm_85"]
 ))
 yaxis = {"range": [0, max_y]}
-# fig = go.Figure(data=[
-#     go.Bar(name="0-44", x=deaths["refPer"], y=deaths["value"]),
-#     go.Bar(name="45-64", x=deaths["refPer"], y=deaths["value_45"]),
-#     go.Bar(name="65-84", x=deaths["refPer"], y=deaths["value_65"]),
-#     go.Bar(name="85+", x=deaths["refPer"], y=deaths["value_85"]),
-# ])
-# fig.update_layout(title="Weekly Deaths, "+PROVINCE_NAME, barmode="stack")
-# fig.show()
-style = {"line": {"width": 0, "color": "rgba(0, 0, 0, 0)"}}
+
 
 fig = go.Figure(data=[
     go.Bar(name="0-44", x=deaths["refPer"], y=deaths["norm_00"], marker=style),
@@ -419,15 +441,6 @@ fig.update_layout(
 )
 fig.show()
 
-# fig = go.Figure(data=[
-#     go.Bar(name="0-44", x=deaths["refPer"], y=deaths["pop_00"]),
-#     go.Bar(name="45-64", x=deaths["refPer"], y=deaths["pop_45"]),
-#     go.Bar(name="65-84", x=deaths["refPer"], y=deaths["pop_65"]),
-#     go.Bar(name="85+", x=deaths["refPer"], y=deaths["pop_85"]),
-# ])
-# fig.update_layout(title="Weekly population, "+PROVINCE_NAME, barmode="stack")
-# fig.show()
-#
 
 # YEARLY AEVERGES
 populations = populations[2:]
@@ -440,10 +453,7 @@ populations[DATE_COLUMN] = [d[:4] for d in populations[DATE_COLUMN]]
 
 fig = go.Figure(data=[
     go.Bar(
-        name="0-44",
-        x=populations[DATE_COLUMN],
-        y=populations["death_00"],
-        marker=style
+        name="0-44", x=populations[DATE_COLUMN], y=populations["death_00"], marker=style
     ),
     go.Bar(
         name="45-64",
@@ -458,16 +468,14 @@ fig = go.Figure(data=[
         marker=style,
     ),
     go.Bar(
-        name="85+",
-        x=populations[DATE_COLUMN],
-        y=populations["death_85"],
-        marker=style
+        name="85+", x=populations[DATE_COLUMN], y=populations["death_85"], marker=style
     ),
 ])
 fig.update_layout(
-    title="Average Weekly Mortality, normalized to current population, " + PROVINCE_NAME,
+    title="Average Weekly Mortality, normalized to current population, "
+    + PROVINCE_NAME,
     barmode="stack",
     yaxis=yaxis,
 )
-fig.update_xaxes(type='category')
+fig.update_xaxes(type="category")
 fig.show()
