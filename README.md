@@ -45,13 +45,13 @@ There are a couple other items to notice:
 
 ### Weekly Mortality
 
-To better explain the statcan.gc.ca chart, I wrote code to pull data from StatCan data cubes.  Here is the same information, unrolled and split into age cohorts:
+To better explain the statcan.gc.ca chart, I wrote code to pull data from StatCan data cubes.  Here is the same information, unrolled and split into age cohorts: 
 
 ![img_2.png](img_2.png)
 
 > Every StatCan data cube can be accessed by productId on the web: It provides some simple navigation options, and it is an easy way to read important footnotes.  Here is the one for this mortality chart: https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1310076801
 
-We can clearly see the upward trend in morality over time.  I have no doubt that Ontario's increasing population is to blame:
+The above is a stacked bar chart; each cohort is stacked atop the younger, so that the total mortality for all ages is the top of the purple (85+) bar.  We can see the COVID-19 spike surpass the 2500 deaths per week, just like in the first chart.  We can also clearly see the upward trend in morality over time.  I have no doubt that Ontario's increasing population is to blame:
 
 ### Population Growth
 
@@ -61,7 +61,7 @@ The population estimates are for July 1 of each year
 
 > You can see the same population data here: https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1710000501
 
-Clearly, the Ontario population is increasing.  The next step was to use these July 1 estimates to interpolate the population throughout the year.  We will make straight-line estimates to get 
+Clearly, the Ontario population is increasing.  The next step was to use these estimates to interpolate the population throughout the year.  We will make straight-line estimates to get 
 
 ![img_4.png](img_4.png)
 
@@ -107,15 +107,11 @@ The falling mortality rate remains unexplained.  There are two solutions I see:
 
 ## Other Notes
 
-British Columbia is interesting: It shows COVID-19 as unremarkable, but it also shows a bad flu season ending June 30 1017.  The mortality rate is flat, as expected, but there is also an increasing mortality rate in younger generations: I wonder what is happening there? Why is there a dip in 2019?  Opioids?  
+British Columbia is interesting: It shows COVID-19 as unremarkable, but it also shows a bad flu season ending June 30 2017.  The mortality rate is flat, as expected, but there is also an increasing mortality rate in younger generations: I wonder what is happening there? Why is there a dip in 2019?  
 
 ![img_7.png](img_7.png)
 
 I wonder what other interesting features can be found in the other provinces.
-
-## Conclusion
-
-The StatCan data was fun to work with.  With over 
 
 
 ## References
