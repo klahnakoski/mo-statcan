@@ -38,8 +38,9 @@ Let's use StatCan data to examine the mortality of COVID-19.  As per statcan.gc.
 > Above is an April 2021 Snapshot of https://www150.statcan.gc.ca/n1/pub/71-607-x/71-607-x2020017-eng.htm
 
 
-There are a couple other items to notice:
+There are a few other items to notice:
 
+* The chart is a [truncated graph](https://en.wikipedia.org/wiki/Misleading_graph#Truncated_graph) intended to visually amplify the difference between curves.
 * Mortality "seasons" are usually measured from July to July to better capture the winter flu; that was not done here.
 * Each year appears to have higher mortality than the previous. What is happening there?
 
