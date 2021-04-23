@@ -49,7 +49,7 @@ WEEKLY_DEATHS = (
     13_10_0784  # https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1310078401
 )
 WEEKLY_DEATHS_OLD = 13_10_0779
-WEEKLY_DEATHS_NEW = 13_10_0768  # by age and province
+WEEKLY_DEATHS_NEW = 13_10_0768  # https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1310076801
 #
 MONTHLY_DEATHS = (
     13_10_0708  # https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1310070801
@@ -115,7 +115,7 @@ def data(cube_id, coord, num):
 
 # ALL CUBES
 # cubes = http.get_json("https://www150.statcan.gc.ca/t1/wds/rest/getAllCubesListLite")
-# Log.note("There are {{num}} cubes", cubes=len(cubes))
+# Log.note("There are {{num}} cubes", num=len(cubes))
 # for c in cubes:
 #     if "bed" in c.cubeTitleEn.lower() or "hospital" in c.cubeTitleEn.lower():
 #         Log.note("{{id}} {{name}}", id=c.productId, name=c.cubeTitleEn)
@@ -167,17 +167,17 @@ def data(cube_id, coord, num):
 ) = data(
     POPULATION_ESTIMATES,
     [
-        "" + str(PROVINCE) + ".1.91",  # 0-14
-        "" + str(PROVINCE) + ".1.25",  # 15-19
-        "" + str(PROVINCE) + ".1.31",  # 20-24
-        "" + str(PROVINCE) + ".1.102",  # 25-44
-        "" + str(PROVINCE) + ".1.103",  # 45-64
-        "" + str(PROVINCE) + ".1.85",  # 65-69  **
-        "" + str(PROVINCE) + ".1.86",  # 70-74  **
-        "" + str(PROVINCE) + ".1.87",  # 75-79  **
-        "" + str(PROVINCE) + ".1.88",  # 80-84  **
-        "" + str(PROVINCE) + ".1.89",  # 85-89
-        "" + str(PROVINCE) + ".1.90",  # 90+
+        str(PROVINCE) + ".1.91",  # 0-14
+        str(PROVINCE) + ".1.25",  # 15-19
+        str(PROVINCE) + ".1.31",  # 20-24
+        str(PROVINCE) + ".1.102",  # 25-44
+        str(PROVINCE) + ".1.103",  # 45-64
+        str(PROVINCE) + ".1.85",  # 65-69  **
+        str(PROVINCE) + ".1.86",  # 70-74  **
+        str(PROVINCE) + ".1.87",  # 75-79  **
+        str(PROVINCE) + ".1.88",  # 80-84  **
+        str(PROVINCE) + ".1.89",  # 85-89
+        str(PROVINCE) + ".1.90",  # 90+
     ],
     12,
 )
@@ -266,13 +266,20 @@ populations["65"] = (
 )
 populations["85"] = populations["value_85"] + populations["value_90"]
 
+populations_max_y = nice_ceiling(max(
+    populations["00"] + populations["45"] + populations["65"] + populations["85"]
+))
+population_yaxis = {"range": [0, populations_max_y]}
+
 fig = go.Figure(data=[
     go.Bar(name="0-44", x=populations[DATE_COLUMN], y=populations["00"]),
     go.Bar(name="45-64", x=populations[DATE_COLUMN], y=populations["45"]),
     go.Bar(name="65-84", x=populations[DATE_COLUMN], y=populations["65"]),
     go.Bar(name="85+", x=populations[DATE_COLUMN], y=populations["85"]),
 ])
-fig.update_layout(title="Population, " + PROVINCE_NAME, barmode="stack")
+fig.update_layout(
+    title="Population, " + PROVINCE_NAME, barmode="stack", yaxis=population_yaxis
+)
 fig.show()
 
 recent_year = populations.shape[0] - 1  # INDEX OF LAST POPULATION COUNT
@@ -315,10 +322,10 @@ def get_population(y, date):
 weekly_deaths0, weekly_deaths45, weekly_deaths65, weekly_deaths85 = data(
     WEEKLY_DEATHS_NEW,
     [
-        "" + str(PROVINCE) + ".2.1.1",
-        "" + str(PROVINCE) + ".3.1.1",
-        "" + str(PROVINCE) + ".4.1.1",
-        "" + str(PROVINCE) + ".5.1.1",
+        str(PROVINCE) + ".2.1.1",
+        str(PROVINCE) + ".3.1.1",
+        str(PROVINCE) + ".4.1.1",
+        str(PROVINCE) + ".5.1.1",
     ],
     1000,  # Jan 2010
 )  # Ontario, 65+, both sex, count
@@ -350,18 +357,6 @@ deaths = deaths.join(
 style = {"line": {"width": 0, "color": "rgba(0, 0, 0, 0)"}}
 
 
-fig = go.Figure(data=[
-    go.Bar(name="0-44", x=deaths["refPer"], y=deaths["value"], marker=style),
-    go.Bar(name="45-64", x=deaths["refPer"], y=deaths["value_45"], marker=style),
-    go.Bar(name="65-84", x=deaths["refPer"], y=deaths["value_65"], marker=style),
-    go.Bar(name="85+", x=deaths["refPer"], y=deaths["value_85"], marker=style),
-])
-fig.update_layout(
-    title="Weekly Deaths, " + PROVINCE_NAME, barmode="stack", bargap=0, bargroupgap=0
-)
-fig.show()
-
-
 deaths["pop_00"] = [get_population("00", Date(date)) for date in deaths["refPer"]]
 deaths["pop_45"] = [get_population("45", Date(date)) for date in deaths["refPer"]]
 deaths["pop_65"] = [get_population("65", Date(date)) for date in deaths["refPer"]]
@@ -379,6 +374,7 @@ fig.update_layout(
     barmode="stack",
     bargap=0,
     bargroupgap=0,
+    yaxis=population_yaxis,
 )
 fig.show()
 
@@ -420,10 +416,26 @@ deaths["norm_85"] = (
     deaths["value_85"] / deaths["pop_85"] * populations["85"][recent_year]
 )
 
-max_y = nice_ceiling(max(
+deaths_max_y = nice_ceiling(max(
     deaths["norm_00"] + deaths["norm_45"] + deaths["norm_65"] + deaths["norm_85"]
 ))
-yaxis = {"range": [0, max_y]}
+yaxis = {"range": [0, deaths_max_y]}
+
+
+fig = go.Figure(data=[
+    go.Bar(name="0-44", x=deaths["refPer"], y=deaths["value"], marker=style),
+    go.Bar(name="45-64", x=deaths["refPer"], y=deaths["value_45"], marker=style),
+    go.Bar(name="65-84", x=deaths["refPer"], y=deaths["value_65"], marker=style),
+    go.Bar(name="85+", x=deaths["refPer"], y=deaths["value_85"], marker=style),
+])
+fig.update_layout(
+    title="Weekly Deaths, " + PROVINCE_NAME,
+    barmode="stack",
+    bargap=0,
+    bargroupgap=0,
+    yaxis=yaxis,
+)
+fig.show()
 
 
 fig = go.Figure(data=[
