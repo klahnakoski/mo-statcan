@@ -13,8 +13,10 @@ from mo_dots import to_data, from_data, listwrap, is_many
 from mo_files import mimetype
 from mo_http import http
 from mo_logs import Log
-from mo_times import Date
+from mo_math import is_nan
+from mo_times import Date, YEAR, WEEK, MONTH
 
+from utils import nice_ceiling
 
 PROVINCE = 7
 PROVINCE_NAME = "Ontario"
@@ -165,17 +167,17 @@ def data(cube_id, coord, num):
 ) = data(
     POPULATION_ESTIMATES,
     [
-        ""+str(PROVINCE)+".1.91",  # 0-14
-        ""+str(PROVINCE)+".1.25",  # 15-19
-        ""+str(PROVINCE)+".1.31",  # 20-24
-        ""+str(PROVINCE)+".1.102",  # 25-44
-        ""+str(PROVINCE)+".1.103",  # 45-64
-        ""+str(PROVINCE)+".1.85",  # 65-69  **
-        ""+str(PROVINCE)+".1.86",  # 70-74  **
-        ""+str(PROVINCE)+".1.87",  # 75-79  **
-        ""+str(PROVINCE)+".1.88",  # 80-84  **
-        ""+str(PROVINCE)+".1.89",  # 85-89
-        ""+str(PROVINCE)+".1.90",  # 90+
+        "" + str(PROVINCE) + ".1.91",  # 0-14
+        "" + str(PROVINCE) + ".1.25",  # 15-19
+        "" + str(PROVINCE) + ".1.31",  # 20-24
+        "" + str(PROVINCE) + ".1.102",  # 25-44
+        "" + str(PROVINCE) + ".1.103",  # 45-64
+        "" + str(PROVINCE) + ".1.85",  # 65-69  **
+        "" + str(PROVINCE) + ".1.86",  # 70-74  **
+        "" + str(PROVINCE) + ".1.87",  # 75-79  **
+        "" + str(PROVINCE) + ".1.88",  # 80-84  **
+        "" + str(PROVINCE) + ".1.89",  # 85-89
+        "" + str(PROVINCE) + ".1.90",  # 90+
     ],
     12,
 )
@@ -183,48 +185,84 @@ def data(cube_id, coord, num):
 DATE_COLUMN = "refPerRaw"
 populations = a00_14
 populations = populations.join(
-    a15_19.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_15"
+    a15_19.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_15",
 )
 populations = populations.join(
-    a20_24.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_20"
+    a20_24.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_20",
 )
 populations = populations.join(
-    a25_44.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_25"
+    a25_44.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_25",
 )
 populations = populations.join(
-    a45_64.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_45"
+    a45_64.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_45",
 )
 populations = populations.join(
-    a65_69.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_65"
+    a65_69.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_65",
 )
 populations = populations.join(
-    a70_74.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_70"
+    a70_74.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_70",
 )
 populations = populations.join(
-    a75_79.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_75"
+    a75_79.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_75",
 )
 populations = populations.join(
-    a80_84.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_80"
+    a80_84.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_80",
 )
 populations = populations.join(
-    a85_89.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_85"
+    a85_89.set_index(DATE_COLUMN),
+    on=DATE_COLUMN,
+    how="inner",
+    lsuffix="",
+    rsuffix="_85",
 )
 populations = populations.join(
     a90.set_index(DATE_COLUMN), on=DATE_COLUMN, how="inner", lsuffix="", rsuffix="_90"
 )
 
 populations["00"] = (
-        populations["value"]
-        + populations["value_15"]
-        + populations["value_20"]
-        + populations["value_25"]
+    populations["value"]
+    + populations["value_15"]
+    + populations["value_20"]
+    + populations["value_25"]
 )
 populations["45"] = populations["value_45"]
 populations["65"] = (
-        populations["value_65"]
-        + populations["value_70"]
-        + populations["value_75"]
-        + populations["value_80"]
+    populations["value_65"]
+    + populations["value_70"]
+    + populations["value_75"]
+    + populations["value_80"]
 )
 populations["85"] = populations["value_85"] + populations["value_90"]
 
@@ -238,6 +276,8 @@ populations["85"] = populations["value_85"] + populations["value_90"]
 # fig.show()
 
 recent_year = populations.shape[0] - 1  # INDEX OF LAST POPULATION COUNT
+_population_dates = [Date(d) for i, d in enumerate(populations[DATE_COLUMN])]
+
 
 def get_population(y, date):
     """
@@ -245,20 +285,18 @@ def get_population(y, date):
     :param date:
     :param y: WHICH POPULATION
     """
-    for i, next in enumerate(populations[DATE_COLUMN]):
-        next = Date(next)
+    for i, next in enumerate(_population_dates):
         if date < next:
-            prev = Date(populations[DATE_COLUMN][i - 1])
-            y1, y2 = populations[y][i-1:i+1]
-            ratio = (date-prev)/(next-prev)
-            return (y2-y1)*ratio+y1
-    # STRAIGHT LINE PROJECTION
-    next = Date(populations[DATE_COLUMN][recent_year])
-    prev = Date(populations[DATE_COLUMN][recent_year-1])
-    y1, y2 = populations[y][-2:]
-    ratio = (date-prev)/(next-prev)
-    return (y2-y1)*ratio+y1
+            prev = _population_dates[i - 1]
+            y1, y2 = populations[y][i - 1 : i + 1]
+            ratio = (date - prev) / (next - prev)
+            return (y2 - y1) * ratio + y1
 
+    # STRAIGHT LINE PROJECTION
+    prev, next = _population_dates[recent_year - 1 :]
+    y1, y2 = populations[y][-2:]
+    ratio = (date - prev) / (next - prev)
+    return (y2 - y1) * ratio + y1
 
 
 #
@@ -275,7 +313,14 @@ def get_population(y, date):
 # Log.note("{{data}}", data=result)
 
 weekly_deaths0, weekly_deaths45, weekly_deaths65, weekly_deaths85 = data(
-    WEEKLY_DEATHS_NEW, [""+str(PROVINCE)+".2.1.1", ""+str(PROVINCE)+".3.1.1", ""+str(PROVINCE)+".4.1.1", ""+str(PROVINCE)+".5.1.1"], 1000  # Jan 2010
+    WEEKLY_DEATHS_NEW,
+    [
+        "" + str(PROVINCE) + ".2.1.1",
+        "" + str(PROVINCE) + ".3.1.1",
+        "" + str(PROVINCE) + ".4.1.1",
+        "" + str(PROVINCE) + ".5.1.1",
+    ],
+    1000,  # Jan 2010
 )  # Ontario, 65+, both sex, count
 
 deaths = weekly_deaths0
@@ -306,13 +351,49 @@ deaths["pop_45"] = [get_population("45", Date(date)) for date in deaths["refPer"
 deaths["pop_65"] = [get_population("65", Date(date)) for date in deaths["refPer"]]
 deaths["pop_85"] = [get_population("85", Date(date)) for date in deaths["refPer"]]
 
+_death_dates = [
+    (Date(d), Date(d) + Date("week")) for i, d in enumerate(deaths["refPer"])
+]
+
+
+def average_weekly(y, year):
+    # RETURN SUM OVER YEAR ENDING JULY 1
+    min = Date(year).floor(YEAR) - 6 * MONTH
+    max = min + YEAR
+    acc = 0
+    for value, (start, stop) in zip(deaths[y], _death_dates):
+        if is_nan(value):
+            continue
+        if min < stop < max:
+            if min < start < max:
+                acc += value
+            else:
+                ratio = (stop - min) / WEEK
+                acc += value * ratio
+        elif min < start < max:
+            ratio = (max - start) / WEEK
+            acc += value * ratio
+        if is_nan(acc):
+            Log.error("not expected")
+    return acc * WEEK / (max - min)
+
+
 # NORMALIZE TO 2020 POPULATION RATIOS
-deaths["rate_00"] = deaths['value'] / deaths['pop_00'] * deaths['pop_00'][recent_year]
-deaths["rate_45"] = deaths['value_45'] / deaths['pop_45'] * deaths['pop_45'][recent_year]
-deaths["rate_65"] = deaths['value_65'] / deaths['pop_65'] * deaths['pop_65'][recent_year]
-deaths["rate_85"] = deaths['value_85'] / deaths['pop_85'] * deaths['pop_85'][recent_year]
+deaths["norm_00"] = deaths["value"] / deaths["pop_00"] * populations["00"][recent_year]
+deaths["norm_45"] = (
+    deaths["value_45"] / deaths["pop_45"] * populations["45"][recent_year]
+)
+deaths["norm_65"] = (
+    deaths["value_65"] / deaths["pop_65"] * populations["65"][recent_year]
+)
+deaths["norm_85"] = (
+    deaths["value_85"] / deaths["pop_85"] * populations["85"][recent_year]
+)
 
-
+max_y = nice_ceiling(max(
+    deaths["norm_00"] + deaths["norm_45"] + deaths["norm_65"] + deaths["norm_85"]
+))
+yaxis = {"range": [0, max_y]}
 # fig = go.Figure(data=[
 #     go.Bar(name="0-44", x=deaths["refPer"], y=deaths["value"]),
 #     go.Bar(name="45-64", x=deaths["refPer"], y=deaths["value_45"]),
@@ -324,12 +405,18 @@ deaths["rate_85"] = deaths['value_85'] / deaths['pop_85'] * deaths['pop_85'][rec
 style = {"line": {"width": 0, "color": "rgba(0, 0, 0, 0)"}}
 
 fig = go.Figure(data=[
-    go.Bar(name="0-44", x=deaths["refPer"], y=deaths["rate_00"], marker=style),
-    go.Bar(name="45-64", x=deaths["refPer"], y=deaths["rate_45"], marker=style),
-    go.Bar(name="65-84", x=deaths["refPer"], y=deaths["rate_65"], marker=style),
-    go.Bar(name="85+", x=deaths["refPer"], y=deaths["rate_85"], marker=style),
+    go.Bar(name="0-44", x=deaths["refPer"], y=deaths["norm_00"], marker=style),
+    go.Bar(name="45-64", x=deaths["refPer"], y=deaths["norm_45"], marker=style),
+    go.Bar(name="65-84", x=deaths["refPer"], y=deaths["norm_65"], marker=style),
+    go.Bar(name="85+", x=deaths["refPer"], y=deaths["norm_85"], marker=style),
 ])
-fig.update_layout(title="Weekly Deaths, normalized to current population, " + PROVINCE_NAME, barmode="stack", bargap=0, bargroupgap=0)
+fig.update_layout(
+    title="Weekly Mortality, normalized to current population, " + PROVINCE_NAME,
+    barmode="stack",
+    bargap=0,
+    bargroupgap=0,
+    yaxis=yaxis,
+)
 fig.show()
 
 # fig = go.Figure(data=[
@@ -341,3 +428,46 @@ fig.show()
 # fig.update_layout(title="Weekly population, "+PROVINCE_NAME, barmode="stack")
 # fig.show()
 #
+
+# YEARLY AEVERGES
+populations = populations[2:]
+populations["death_00"] = [average_weekly("norm_00", y) for y in populations["refPer"]]
+populations["death_45"] = [average_weekly("norm_45", y) for y in populations["refPer"]]
+populations["death_65"] = [average_weekly("norm_65", y) for y in populations["refPer"]]
+populations["death_85"] = [average_weekly("norm_85", y) for y in populations["refPer"]]
+populations[DATE_COLUMN] = [d[:4] for d in populations[DATE_COLUMN]]
+
+
+fig = go.Figure(data=[
+    go.Bar(
+        name="0-44",
+        x=populations[DATE_COLUMN],
+        y=populations["death_00"],
+        marker=style
+    ),
+    go.Bar(
+        name="45-64",
+        x=populations[DATE_COLUMN],
+        y=populations["death_45"],
+        marker=style,
+    ),
+    go.Bar(
+        name="65-84",
+        x=populations[DATE_COLUMN],
+        y=populations["death_65"],
+        marker=style,
+    ),
+    go.Bar(
+        name="85+",
+        x=populations[DATE_COLUMN],
+        y=populations["death_85"],
+        marker=style
+    ),
+])
+fig.update_layout(
+    title="Average Weekly Mortality, normalized to current population, " + PROVINCE_NAME,
+    barmode="stack",
+    yaxis=yaxis,
+)
+fig.update_xaxes(type='category')
+fig.show()
