@@ -11,18 +11,18 @@ import pandas as pd
 import plotly.graph_objects as go
 from mo_dots import to_data, from_data, listwrap, is_many
 from mo_files import mimetype
+from mo_future import first
 from mo_http import http
 from mo_logs import Log
 from mo_math import is_nan
 from mo_times import Date, YEAR, WEEK, MONTH
+from pandas import DataFrame
 
 from utils import nice_ceiling
 
-PROVINCE = 7
-PROVINCE_NAME = "Ontario"
-
-# PROVINCE = 11
-# PROVINCE_NAME = "British Columbia"
+# PROVINCE = 7  # Ontario
+# PROVINCE = 10  # Alberta
+PROVINCE = 11  # British Columbia
 
 Log.start(trace=True)
 
@@ -77,13 +77,20 @@ def metadata(cube_id):
     )
 
 
+PROVINCE_NAME = first(
+    m.memberNameEn
+    for m in metadata(POPULATION_ESTIMATES)[0].object.dimension[0].member
+    if m.memberId == PROVINCE
+)
+
+
 def format_coordinate(coord):
     coordinates = coord.split(".")
     coordinates.extend(["0"] * (10 - len(coordinates)))
     return ".".join(coordinates)
 
 
-def data(cube_id, coord, num):
+def get_statcan_data(cube_id, coord, num):
     """
     RETURN DATA FOR ONE COORDINATE
     :param cube_id:
@@ -164,20 +171,20 @@ def data(cube_id, coord, num):
     a80_84,
     a85_89,
     a90,
-) = data(
+) = get_statcan_data(
     POPULATION_ESTIMATES,
     [
-        str(PROVINCE) + ".1.91",  # 0-14
-        str(PROVINCE) + ".1.25",  # 15-19
-        str(PROVINCE) + ".1.31",  # 20-24
+        str(PROVINCE) + ".1.91",   # 0-14
+        str(PROVINCE) + ".1.25",   # 15-19
+        str(PROVINCE) + ".1.31",   # 20-24
         str(PROVINCE) + ".1.102",  # 25-44
         str(PROVINCE) + ".1.103",  # 45-64
-        str(PROVINCE) + ".1.85",  # 65-69  **
-        str(PROVINCE) + ".1.86",  # 70-74  **
-        str(PROVINCE) + ".1.87",  # 75-79  **
-        str(PROVINCE) + ".1.88",  # 80-84  **
-        str(PROVINCE) + ".1.89",  # 85-89
-        str(PROVINCE) + ".1.90",  # 90+
+        str(PROVINCE) + ".1.85",   # 65-69  **
+        str(PROVINCE) + ".1.86",   # 70-74  **
+        str(PROVINCE) + ".1.87",   # 75-79  **
+        str(PROVINCE) + ".1.88",   # 80-84  **
+        str(PROVINCE) + ".1.89",   # 85-89
+        str(PROVINCE) + ".1.90",   # 90+
     ],
     12,
 )
@@ -282,7 +289,8 @@ fig.update_layout(
 )
 fig.show()
 
-recent_year = populations.shape[0] - 1  # INDEX OF LAST POPULATION COUNT
+recent_year_index = populations.shape[0] - 1  # INDEX OF LAST POPULATION COUNT
+recent_year_name = populations.refPer[recent_year_index][:4]
 _population_dates = [Date(d) for i, d in enumerate(populations[DATE_COLUMN])]
 
 
@@ -300,7 +308,7 @@ def get_population(y, date):
             return (y2 - y1) * ratio + y1
 
     # STRAIGHT LINE PROJECTION
-    prev, next = _population_dates[recent_year - 1 :]
+    prev, next = _population_dates[recent_year_index - 1:]
     y1, y2 = populations[y][-2:]
     ratio = (date - prev) / (next - prev)
     return (y2 - y1) * ratio + y1
@@ -319,7 +327,7 @@ def get_population(y, date):
 # result = metadata(WEEKLY_DEATHS_NEW)
 # Log.note("{{data}}", data=result)
 
-weekly_deaths0, weekly_deaths45, weekly_deaths65, weekly_deaths85 = data(
+weekly_deaths0, weekly_deaths45, weekly_deaths65, weekly_deaths85 = get_statcan_data(
     WEEKLY_DEATHS_NEW,
     [
         str(PROVINCE) + ".2.1.1",
@@ -383,37 +391,40 @@ _death_dates = [(Date(d), Date(d) + Date("week")) for d in deaths["refPer"]]
 
 
 def average_weekly(y, year):
-    # RETURN SUM OVER YEAR ENDING JULY 1
+    # RETURN AVERAGE OVER YEAR ENDING JULY 1
     min = Date(year).floor(YEAR) - 6 * MONTH
     max = min + YEAR
+    max_seen = min
     acc = 0
     for value, (start, stop) in zip(deaths[y], _death_dates):
         if is_nan(value):
             continue
         if min < stop < max:
+            max_seen = stop
             if min < start < max:
                 acc += value
             else:
                 ratio = (stop - min) / WEEK
                 acc += value * ratio
         elif min < start < max:
+            max_seen = max
             ratio = (max - start) / WEEK
             acc += value * ratio
         if is_nan(acc):
             Log.error("not expected")
-    return acc * WEEK / (max - min)
+    return acc * WEEK / (max_seen - min)
 
 
-# NORMALIZE TO 2020 POPULATION RATIOS
-deaths["norm_00"] = deaths["value"] / deaths["pop_00"] * populations["00"][recent_year]
+# NORMALIZE TO recent_year POPULATION RATIOS
+deaths["norm_00"] = deaths["value"] / deaths["pop_00"] * populations["00"][recent_year_index]
 deaths["norm_45"] = (
-    deaths["value_45"] / deaths["pop_45"] * populations["45"][recent_year]
+    deaths["value_45"] / deaths["pop_45"] * populations["45"][recent_year_index]
 )
 deaths["norm_65"] = (
-    deaths["value_65"] / deaths["pop_65"] * populations["65"][recent_year]
+    deaths["value_65"] / deaths["pop_65"] * populations["65"][recent_year_index]
 )
 deaths["norm_85"] = (
-    deaths["value_85"] / deaths["pop_85"] * populations["85"][recent_year]
+    deaths["value_85"] / deaths["pop_85"] * populations["85"][recent_year_index]
 )
 
 deaths_max_y = nice_ceiling(max(
@@ -454,38 +465,47 @@ fig.update_layout(
 fig.show()
 
 
-# YEARLY AEVERGES
-populations = populations[2:]
-populations["death_00"] = [average_weekly("norm_00", y) for y in populations["refPer"]]
-populations["death_45"] = [average_weekly("norm_45", y) for y in populations["refPer"]]
-populations["death_65"] = [average_weekly("norm_65", y) for y in populations["refPer"]]
-populations["death_85"] = [average_weekly("norm_85", y) for y in populations["refPer"]]
-populations[DATE_COLUMN] = [d[:4] for d in populations[DATE_COLUMN]]
+# YEARLY AVERAGES
+curr_year = (Date.now() + 6*MONTH).floor(YEAR)
+years = [y for y in Date.range(Date("2011-01-01"), curr_year, YEAR)]
 
+
+avg_weekly_deaths = DataFrame.from_records([
+    {
+        "death_00": average_weekly("norm_00", y),
+        "death_45": average_weekly("norm_45", y),
+        "death_65": average_weekly("norm_65", y),
+        "death_85": average_weekly("norm_85", y),
+        DATE_COLUMN: y.format("%Y")
+    }
+    for y in years
+])
 
 fig = go.Figure(data=[
     go.Bar(
-        name="0-44", x=populations[DATE_COLUMN], y=populations["death_00"], marker=style
+        name="0-44",
+        x=avg_weekly_deaths[DATE_COLUMN],
+        y=avg_weekly_deaths["death_00"],
+        marker=style
     ),
     go.Bar(
         name="45-64",
-        x=populations[DATE_COLUMN],
-        y=populations["death_45"],
+        x=avg_weekly_deaths[DATE_COLUMN],
+        y=avg_weekly_deaths["death_45"],
         marker=style,
     ),
     go.Bar(
         name="65-84",
-        x=populations[DATE_COLUMN],
-        y=populations["death_65"],
+        x=avg_weekly_deaths[DATE_COLUMN],
+        y=avg_weekly_deaths["death_65"],
         marker=style,
     ),
     go.Bar(
-        name="85+", x=populations[DATE_COLUMN], y=populations["death_85"], marker=style
+        name="85+", x=avg_weekly_deaths[DATE_COLUMN], y=avg_weekly_deaths["death_85"], marker=style
     ),
 ])
 fig.update_layout(
-    title="Average Weekly Mortality, normalized to current population, "
-    + PROVINCE_NAME,
+    title=f"Average Weekly Mortality, normalized to July 1 {populations[DATE_COLUMN].values[-1][:4]} population {PROVINCE_NAME}",
     barmode="stack",
     yaxis=yaxis,
 )
